@@ -1,0 +1,1203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Leave Register</title>
+<meta name="theme-color" content="#1F3FA6">
+<meta name="description" content="Personal leave register for Tamil Nadu Government servants. Works offline; data stays on your device.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231F3FA6'/%3E%3Crect x='15' y='11' width='34' height='42' rx='3' fill='%23fff'/%3E%3Cpath d='M22 11v42' stroke='%23B3261E' stroke-width='2'/%3E%3Cpath d='M26 22h17M26 30h17M26 38h12' stroke='%231F3FA6' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Zilla+Slab:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+<style>
+:root{
+  --paper:#ECF1EC; --sheet:#FFFFFF; --ink:#152038; --ink2:#566179; --rule:#CBD8CD; --rule2:#E2EAE3;
+  --blue:#1F3FA6; --on-blue:#FFFFFF; --blue-soft:#E4EAFB; --red:#B3261E; --red-soft:#FBE8E6;
+  --amber:#8A5300; --amber-soft:#FBEFD7; --green:#2B6E45; --green-soft:#E0F0E5;
+  --f-body:"Atkinson Hyperlegible","Segoe UI",Roboto,system-ui,sans-serif;
+  --f-num:"Zilla Slab",Rockwell,Georgia,serif;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0F151D; --sheet:#17202B; --ink:#E7ECF3; --ink2:#9AA7BA; --rule:#2B3947; --rule2:#212C38;
+    --blue:#9DB2FF; --on-blue:#0F151D; --blue-soft:#1F2A4A; --red:#FF8F86; --red-soft:#3A1F22;
+    --amber:#F2B65C; --amber-soft:#3A2D16; --green:#79D49B; --green-soft:#183326; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0F151D; --sheet:#17202B; --ink:#E7ECF3; --ink2:#9AA7BA; --rule:#2B3947; --rule2:#212C38;
+  --blue:#9DB2FF; --on-blue:#0F151D; --blue-soft:#1F2A4A; --red:#FF8F86; --red-soft:#3A1F22;
+  --amber:#F2B65C; --amber-soft:#3A2D16; --green:#79D49B; --green-soft:#183326; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+html,body{height:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 var(--f-body)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--paper)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+img,svg{max-width:100%}
+
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--paper);border-bottom:1px solid var(--rule)}
+.top-in{max-width:760px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:12px}
+.brand{font-family:var(--f-num);font-weight:700;font-size:20px;color:var(--blue);line-height:1.1}
+.who{font-size:13px;color:var(--ink2);background:none;border:0;padding:0;cursor:pointer;text-align:left;display:block}
+.who:hover{color:var(--ink)}
+.top-in .spacer{flex:1}
+.syncb{border:1.5px solid var(--rule);background:var(--sheet);border-radius:16px;padding:4px 11px;font-size:12.5px;color:var(--ink2);cursor:pointer;white-space:nowrap}
+.syncb.pending{border-color:var(--amber);color:var(--amber);font-weight:700}
+.syncb.err{border-color:var(--red);color:var(--red);font-weight:700}
+.yearsel{border:1px solid var(--rule);background:var(--sheet);border-radius:8px;padding:6px 10px;font-family:var(--f-num);font-weight:700;font-size:16px}
+
+main{max-width:760px;margin:0 auto;padding:16px 16px calc(96px + env(safe-area-inset-bottom,0px))}
+h2{font-family:var(--f-num);font-weight:700;font-size:22px;margin:28px 0 10px;line-height:1.2}
+h2:first-child{margin-top:4px}
+h3{font-size:16px;margin:20px 0 6px}
+p{margin:0 0 10px}
+.muted{color:var(--ink2)}
+.small{font-size:14px}
+.tiny{font-size:12.5px}
+
+/* Account-book sheet: ruled rows and a red double margin line */
+.ledger{background:var(--sheet);border:1px solid var(--rule);border-radius:6px;position:relative;padding-left:26px;overflow:hidden}
+.ledger::before,.ledger::after{content:"";position:absolute;top:0;bottom:0;border-left:1.5px solid var(--red);opacity:.55}
+.ledger::before{left:13px}.ledger::after{left:18px}
+.lrow{display:grid;grid-template-columns:3.4em 1fr auto;gap:2px 12px;padding:14px 16px 13px 6px;border-bottom:1px solid var(--rule2);align-items:baseline}
+.lrow:last-child{border-bottom:0}
+.lcode{font-family:var(--f-num);font-weight:700;color:var(--blue);font-size:15px}
+.lname{font-weight:700}
+.lsub{grid-column:2 / 4;font-size:13.5px;color:var(--ink2);line-height:1.4}
+.big{font-family:var(--f-num);font-weight:700;font-size:36px;line-height:1;font-variant-numeric:tabular-nums;text-align:right}
+.big small{font-size:14px;font-weight:500;color:var(--ink2);margin-left:3px}
+.neg{color:var(--red)} .low{color:var(--amber)}
+
+.panel{background:var(--sheet);border:1px solid var(--rule);border-radius:6px}
+.list{list-style:none;margin:0;padding:0}
+.item{display:grid;grid-template-columns:52px 1fr auto;gap:2px 12px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--rule2);width:100%;text-align:left;background:none;border-left:0;border-right:0;border-top:0;cursor:pointer}
+.list li:last-child .item{border-bottom:0}
+.item:hover{background:var(--blue-soft)}
+.dateblk{text-align:center;line-height:1.05}
+.dateblk b{display:block;font-family:var(--f-num);font-size:24px;font-weight:700}
+.dateblk span{font-size:12px;color:var(--ink2)}
+.item .t{font-weight:700}
+.item .d{font-size:13.5px;color:var(--ink2)}
+.item .msg{grid-column:2 / 4;font-size:13px;margin-top:2px}
+.msg.err{color:var(--red);font-weight:700}
+.msg.warn{color:var(--amber);font-weight:700}
+.monthhead{font-family:var(--f-num);font-weight:700;color:var(--ink2);font-size:15px;margin:18px 2px 6px}
+
+.stamp{display:inline-block;font-family:var(--f-num);font-weight:700;font-size:12.5px;padding:1px 7px 2px;border:1.6px solid currentColor;border-radius:4px;transform:rotate(-3deg);white-space:nowrap;background:var(--sheet)}
+.stamp.used{color:var(--green)} .stamp.planned{color:var(--blue)} .stamp.ignored{color:var(--ink2);text-decoration:line-through}
+.stamp.err{color:var(--red)} .stamp.warn{color:var(--amber)} .stamp.dim{color:var(--ink2)}
+
+.banner{border-radius:6px;padding:12px 14px;margin:10px 0;font-size:14.5px}
+.banner.warn{background:var(--amber-soft);color:var(--ink);border:1px solid var(--amber)}
+.banner.err{background:var(--red-soft);border:1px solid var(--red)}
+.banner.ok{background:var(--green-soft);border:1px solid var(--green)}
+.banner.info{background:var(--blue-soft);border:1px solid var(--rule)}
+.banner b{display:block;margin-bottom:2px}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 16px;border-radius:8px;border:1.5px solid var(--blue);background:var(--sheet);color:var(--blue);font-weight:700;cursor:pointer;text-decoration:none}
+.btn.primary{background:var(--blue);color:var(--on-blue)}
+.btn.danger{border-color:var(--red);color:var(--red)}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btns{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
+.fab{position:fixed;right:max(16px,calc(50% - 364px));bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:25;box-shadow:0 6px 18px rgba(20,30,60,.25);border-radius:28px;padding:0 20px;min-height:52px}
+
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--sheet);border-top:1px solid var(--rule);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tabs-in{max-width:760px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr)}
+.tab{background:none;border:0;padding:8px 2px 9px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12.5px;color:var(--ink2);cursor:pointer}
+.tab svg{width:22px;height:22px}
+.tab[aria-current="page"]{color:var(--blue);font-weight:700}
+.tab[aria-current="page"] svg{stroke-width:2.4}
+
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none}
+.chip{border:1.5px solid var(--rule);background:var(--sheet);border-radius:18px;padding:5px 13px;cursor:pointer;white-space:nowrap;font-size:14px}
+.chip[aria-pressed="true"]{border-color:var(--blue);color:var(--blue);font-weight:700;background:var(--blue-soft)}
+
+table.grid{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+.grid th,.grid td{padding:8px 10px;border-bottom:1px solid var(--rule2);text-align:right;white-space:nowrap}
+.grid th:first-child,.grid td:first-child{text-align:left}
+.grid th{font-size:12.5px;color:var(--ink2);font-weight:700;background:var(--paper)}
+.grid td.l{text-align:left;white-space:normal}
+.scroll{overflow-x:auto}
+
+/* sheet (modal) */
+.scrim{position:fixed;inset:0;background:rgba(8,12,22,.5);z-index:50;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--sheet);width:100%;max-width:560px;max-height:92%;overflow:auto;border-radius:16px 16px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));animation:up .18s ease-out}
+@keyframes up{from{transform:translateY(24px);opacity:.4}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion: reduce){.sheet{animation:none}}
+@media (min-width:700px){.scrim{align-items:center}.sheet{border-radius:12px;padding-bottom:18px}}
+.sheet h2{margin:0 0 12px}
+.field{display:block;margin:0 0 14px}
+.field > span{display:block;font-size:14px;font-weight:700;margin-bottom:5px}
+.field > em{display:block;font-style:normal;font-size:12.5px;color:var(--ink2);margin-top:4px}
+.in{width:100%;min-height:46px;border:1.5px solid var(--rule);border-radius:8px;background:var(--paper);padding:8px 11px}
+textarea.in{min-height:120px;font-size:14px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);border:1.5px solid var(--rule);border-radius:8px;overflow:hidden}
+.seg label{display:flex;align-items:center;justify-content:center;min-height:44px;cursor:pointer;font-size:14px;border-right:1px solid var(--rule);text-align:center;padding:0 4px}
+.seg label:last-child{border-right:0}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label:has(input:checked){background:var(--blue);color:var(--on-blue);font-weight:700}
+.seg label:has(input:focus-visible){outline:3px solid var(--blue);outline-offset:-3px}
+.check{display:flex;gap:10px;align-items:flex-start;margin:0 0 14px;font-size:15px}
+.check input{width:22px;height:22px;margin-top:1px;accent-color:var(--blue)}
+.preview{border:1px dashed var(--rule);border-radius:8px;padding:10px 12px;margin:4px 0 14px;font-size:14px}
+.preview .count{font-family:var(--f-num);font-weight:700;font-size:20px}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:8px;z-index:60;max-width:90%;font-size:14.5px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:15px;padding:14px 16px}
+.kv dt{color:var(--ink2)} .kv dd{margin:0;font-weight:700}
+.chart{padding:12px 10px 6px}
+.chart text{font-family:var(--f-body);fill:var(--ink2);font-size:11px}
+.legend{display:flex;gap:16px;font-size:13px;color:var(--ink2);padding:0 14px 12px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.empty{padding:22px 16px;text-align:center;color:var(--ink2)}
+.hrow{display:grid;grid-template-columns:92px 1fr auto;gap:10px;align-items:center;padding:9px 12px;border-bottom:1px solid var(--rule2);font-size:14.5px}
+.hrow:last-child{border-bottom:0}
+.hrow .x{background:none;border:0;color:var(--ink2);cursor:pointer;min-width:36px;min-height:36px;font-size:18px}
+.hrow .x:hover{color:var(--red)}
+.hrow.we{color:var(--ink2)}
+.welcome{max-width:520px;margin:0 auto}
+.welcome .brand{font-size:34px;margin:16px 0 4px}
+@media (max-width:380px){.big{font-size:30px}.row2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="top" id="top"></header>
+<main id="main"></main>
+<nav class="tabs" id="tabs" aria-label="Sections"></nav>
+<div id="layer"></div>
+<input type="file" id="filein" accept=".json,application/json" hidden>
+
+<script>
+'use strict';
+/* Google Drive sync — paste your OAuth Client ID between the quotes (see README).
+   A Client ID is not a secret; it is safe in a public repository. */
+const GOOGLE_CLIENT_ID = '';
+
+/* ====================================================================
+   RULES — Tamil Nadu Government leave rules as used by this app.
+   Source: "Various kinds of leave admissible to TN Government servants"
+   (johnsonasirservices.org summary). Rules change by G.O.: check them.
+   ==================================================================== */
+const RULES = {
+  state: 'Tamil Nadu',
+  types: [
+    {code:'EL',   name:'Earned Leave',                      kind:'el',     count:'calendar', half:false},
+    {code:'CL',   name:'Casual Leave',                      kind:'yearly', ent:12, count:'working', half:true,  combo:true, noRegular:true},
+    {code:'RH',   name:'Restricted Holiday',                kind:'yearly', ent:3,  count:'working', half:false, combo:true, noRegular:true, rhList:true, notTemporary:true},
+    {code:'CLL',  name:'Compensatory Leave',                kind:'duty',   count:'working', half:true,  combo:true},
+    {code:'UL-PA',name:'Unearned Leave (Private Affairs)',  kind:'track',  count:'calendar', half:false},
+    {code:'UL-MC',name:'Unearned Leave (Medical Cert.)',    kind:'track',  count:'calendar', half:false},
+    {code:'ML',   name:'Maternity Leave',                   kind:'track',  count:'calendar', half:false},
+    {code:'EOL',  name:'Extraordinary Leave',               kind:'track',  count:'calendar', half:false, reducesEL:true},
+    {code:'SCL',  name:'Special Casual Leave',              kind:'track',  count:'working',  half:true},
+  ],
+  statuses: [['Taken','used'],['Planned','planned'],['Tentative','planned'],['Pending approval','planned'],['Cancelled','ignored']],
+  el: {
+    advance:15, advanceCap:240,          // approved probationers / permanent: 15 on 1 Jan and 1 Jul, max 240
+    monthRate:2.5,                       // partial half-year after probation is declared: 2½ per completed month
+    pairRate:2.5, pairCap:30,            // temporary / probationers: 2½ per completed 2 months, max 30
+    eolAdvanceDiv:10, eolAdvanceMax:15,  // EOL cuts next credit by 1/10, max 15
+    eolPairsDiv:20,   eolPairsMax:8,     // EOL cuts credit by 1/20, max 8
+    basicAdvanceYears:5,                 // basic service: advance credit only after 5 years
+    maxAtATimeApproved:180, maxAtATimeOther:30
+  }
+};
+const TYPE = Object.fromEntries(RULES.types.map(t=>[t.code,t]));
+const STATUS_CAT = Object.fromEntries(RULES.statuses);
+const CAT_LABEL = {used:'Taken', planned:'Planned', ignored:'Cancelled'};
+
+/* Holidays shipped with the app. 2026 public list is a draft — check it against the G.O. */
+const SEED_HOLIDAYS = [
+ ['2026-01-01','New Year’s Day'],['2026-01-15','Pongal'],['2026-01-16','Thiruvalluvar Day'],['2026-01-17','Uzhavar Thirunal'],
+ ['2026-01-26','Republic Day'],['2026-02-01','Thai Poosam'],['2026-03-19','Telugu New Year’s Day'],['2026-03-21','Ramzan (Id-ul-Fitr)'],
+ ['2026-03-31','Mahaveer Jayanthi'],['2026-04-03','Good Friday'],['2026-04-14','Tamil New Year’s Day / Dr. Ambedkar’s Birthday'],
+ ['2026-05-01','May Day'],['2026-05-28','Bakrid (Id-ul-Azha)'],['2026-06-26','Muharram'],['2026-08-15','Independence Day'],
+ ['2026-08-26','Milad-un-Nabi'],['2026-09-04','Krishna Jayanthi'],['2026-09-14','Vinayakar Chathurthi'],['2026-10-02','Gandhi Jayanthi'],
+ ['2026-10-19','Ayutha Pooja'],['2026-10-20','Vijayadasami'],['2026-11-08','Deepavali'],['2026-12-25','Christmas']
+].map(([date,name])=>({date,name,kind:'public',draft:true})).concat([
+ ['2026-01-03','Arudra Dharshan'],['2026-01-14','Bogi'],['2026-01-16','Shabe Miraj'],['2026-02-04','Shabe Bharath'],
+ ['2026-02-15','Maha Sivarathri'],['2026-02-18','Ash Wednesday'],['2026-02-19','First day of Ramzan'],['2026-03-02','Masi Makam'],
+ ['2026-03-04','Bhagavan Vaikundaswami Birthday'],['2026-03-16','Shabe Khader'],['2026-04-02','Maundy Thursday'],['2026-04-05','Easter'],
+ ['2026-05-01','Chithra Pournami / Buddha Jayanthi'],['2026-05-27','Arfa'],['2026-06-17','Hijri New Year'],['2026-08-03','Aadi Perukku'],
+ ['2026-08-21','Varalakshmi Vratham'],['2026-08-26','Onam'],['2026-08-27','Rig / Yajur Upakarma'],['2026-08-28','Gayathri Japam'],
+ ['2026-09-13','Sama Upakarma'],['2026-09-22','Garveen of Mohideen Abdul Khader'],['2026-10-10','Mahalaya Amavasai'],
+ ['2026-11-02','All Souls’ Day'],['2026-11-24','Karthigai Deepam / Guru Nanak Jayanti'],['2026-12-20','Vaikunda Ekadesi'],
+ ['2026-12-24','Christmas Eve'],['2026-12-31','New Year’s Eve']
+].map(([date,name])=>({date,name,kind:'rh'})));
+
+/* ---------------------------------------------------------------- dates */
+const pad = n => String(n).padStart(2,'0');
+const D = s => { const [y,m,d]=s.split('-').map(Number); return new Date(Date.UTC(y,m-1,d)); };
+const iso = t => t.toISOString().slice(0,10);
+const addDays = (s,n) => { const t=D(s); t.setUTCDate(t.getUTCDate()+n); return iso(t); };
+const addMonths = (s,n) => { const [y,m,d]=s.split('-').map(Number); const t=new Date(Date.UTC(y,m-1+n,1));
+  const last=new Date(Date.UTC(t.getUTCFullYear(),t.getUTCMonth()+1,0)).getUTCDate(); t.setUTCDate(Math.min(d,last)); return iso(t); };
+const addYears = (s,n) => addMonths(s,12*n);
+const dow = s => D(s).getUTCDay();
+const diffDays = (a,b) => Math.round((D(b)-D(a))/864e5);
+const todayISO = () => { const n=new Date(); return `${n.getFullYear()}-${pad(n.getMonth()+1)}-${pad(n.getDate())}`; };
+const curYear = () => +todayISO().slice(0,4);
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const fmt = s => s ? `${+s.slice(8,10)} ${MON[+s.slice(5,7)-1]} ${s.slice(0,4)}` : '';
+const fmtS = s => s ? `${+s.slice(8,10)} ${MON[+s.slice(5,7)-1]}` : '';
+const monthEnd = s => iso(new Date(Date.UTC(+s.slice(0,4), +s.slice(5,7), 0)));
+const nextMonthStart = s => iso(new Date(Date.UTC(+s.slice(0,4), +s.slice(5,7), 1)));
+const num = n => { const r=Math.round(n*10)/10; return (Number.isInteger(r)? String(r) : r.toFixed(1)); };
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);
+const plural = (n,w) => `${num(n)} ${w}${n===1?'':'s'}`;
+
+/* Completed calendar months lying wholly inside [start, end] */
+function completedMonths(start, end){
+  if(!start || !end || start>end) return 0;
+  let m = start.slice(8,10)==='01' ? start.slice(0,8)+'01' : nextMonthStart(start);
+  let n = 0;
+  while(m<=end && monthEnd(m)<=end && n<1000){ n++; m = nextMonthStart(m); }
+  return n;
+}
+
+/* ---------------------------------------------------------------- state */
+const KEY = 'leave-register:v1';
+function freshState(){
+  return {version:1, settings:{cllMonths:6, maxConsec:10, lowBal:2, cllYearCap:20},
+          holidays: SEED_HOLIDAYS.map(h=>({...h})), profiles:[], active:null, lastBackup:null, tombs:{}, settingsUpdated:0};
+}
+function normalizeProfile(p){
+  p.id ||= uid(); p.name ??= 'My register'; p.joinDate ||= ''; p.service ||= 'superior';
+  p.category ||= 'probationer'; p.probationDate ||= ''; p.cllEligible = p.cllEligible !== false;
+  p.leaves = Array.isArray(p.leaves) ? p.leaves : []; p.duties = Array.isArray(p.duties) ? p.duties : [];
+  p.elAdjust = Array.isArray(p.elAdjust) ? p.elAdjust : [];
+  p.leaves.forEach(e=>{ e.id ||= uid(); e.dur ||= 'full'; e.to ||= ''; e.duty ||= ''; e.note ||= ''; });
+  p.duties.forEach(d=>{ d.id ||= uid(); d.credit = +d.credit || 1; d.note ||= ''; });
+  return p;
+}
+function loadState(){
+  try{
+    const t = localStorage.getItem(KEY); if(!t) return null;
+    const s = JSON.parse(t); const f = freshState();
+    s.settings = {...f.settings, ...(s.settings||{})};
+    s.holidays = Array.isArray(s.holidays) ? s.holidays : f.holidays;
+    s.profiles = (s.profiles||[]).map(normalizeProfile);
+    s.tombs = s.tombs || {};
+    return s;
+  }catch(e){ return null; }
+}
+let S = loadState() || freshState();
+let storageOK = true;
+function persistLocal(){
+  try{ localStorage.setItem(KEY, JSON.stringify(S)); storageOK = true; }
+  catch(e){ storageOK = false; toast('Could not save on this device. Download a backup from More.'); }
+}
+function persist(){ persistLocal(); scheduleSync(); }
+
+/* Change tracking, so two devices can be merged entry by entry */
+const hkey = h => `h:${h.kind}|${h.date}|${h.name}`;
+const now = () => Date.now();
+function tomb(key){ S.tombs[key] = now(); }
+function exportObj(st){
+  return {app:'leave-register', version:1, exported:new Date().toISOString(), settings:st.settings,
+          settingsUpdated:st.settingsUpdated||0, holidays:st.holidays, profiles:st.profiles, tombs:st.tombs||{}};
+}
+/* Merge two copies of the register: newest edit of each entry wins, deletions are kept */
+function mergeState(a, b){
+  const tombs = {...(a.tombs||{})};
+  for(const [k,v] of Object.entries(b.tombs||{})) tombs[k] = Math.max(tombs[k]||0, v);
+  const alive = (k,u) => !(tombs[k] && tombs[k] >= (u||0));
+  const mergeList = (x, y, keyFn=i=>i.id) => {
+    const m = new Map();
+    [...(x||[]), ...(y||[])].forEach(i=>{ if(!i) return; const k=keyFn(i), o=m.get(k); if(!o || (i.updated||0) > (o.updated||0)) m.set(k, i); });
+    return [...m.values()].filter(i=>alive(keyFn(i), i.updated));
+  };
+  const pm = new Map();
+  [...(a.profiles||[]), ...(b.profiles||[])].forEach(q=>{
+    q = normalizeProfile(JSON.parse(JSON.stringify(q))); const o = pm.get(q.id);
+    if(!o){ pm.set(q.id, q); return; }
+    const base = (q.updated||0) > (o.updated||0) ? q : o;
+    pm.set(q.id, {...base, leaves:mergeList(o.leaves,q.leaves), duties:mergeList(o.duties,q.duties), elAdjust:mergeList(o.elAdjust,q.elAdjust)});
+  });
+  const aNewer = (a.settingsUpdated||0) >= (b.settingsUpdated||0);
+  return {...a, version:1, tombs,
+    profiles: [...pm.values()].filter(q=>alive(q.id, q.updated)),
+    holidays: mergeList(a.holidays, b.holidays, hkey),
+    settings: aNewer ? {...(b.settings||{}), ...a.settings} : {...a.settings, ...(b.settings||{})},
+    settingsUpdated: Math.max(a.settingsUpdated||0, b.settingsUpdated||0)};
+}
+
+/* ---------------------------------------------------------------- Google Drive sync */
+const DKEY = 'leave-register:device';
+let DEV = (()=>{ try{ return JSON.parse(localStorage.getItem(DKEY)) || {}; }catch(e){ return {}; } })();
+const saveDev = () => { try{ localStorage.setItem(DKEY, JSON.stringify(DEV)); }catch(e){} };
+const SYNC_FILE = 'leave-register.json', DRIVE = 'https://www.googleapis.com';
+const onClaude = () => /claude/i.test(location.hostname);
+const syncAvailable = () => !!GOOGLE_CLIENT_ID && !onClaude() && (location.protocol==='https:' || location.hostname==='localhost');
+let tokenClient = null, token = null, tokenExp = 0, pendingTok = null, syncing = false, syncTimer = null;
+if(DEV.sync) DEV.pending = true;   // a fresh start has no Google token yet
+
+function initGIS(){
+  if(!syncAvailable()) return;
+  const sc = document.createElement('script'); sc.src = 'https://accounts.google.com/gsi/client'; sc.async = true;
+  sc.onload = () => {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID, scope: 'https://www.googleapis.com/auth/drive.appdata',
+      callback: r => { const pt = pendingTok; pendingTok = null; if(!pt) return;
+        if(r.error) pt.rej(new Error(r.error_description || r.error));
+        else { token = r.access_token; tokenExp = now() + (+r.expires_in || 3600)*1000; pt.res(token); } },
+      error_callback: e => { const pt = pendingTok; pendingTok = null;
+        pt && pt.rej(new Error(e && e.type==='popup_closed' ? 'The Google window was closed before sign-in finished.' :
+                               e && e.type==='popup_failed_to_open' ? 'The browser blocked the Google window. Allow pop-ups for this site.' : 'Google sign-in did not finish.')); }
+    });
+    render();
+  };
+  document.head.appendChild(sc);
+}
+function getToken(interactive){
+  if(token && now() < tokenExp - 60000) return Promise.resolve(token);
+  if(!interactive) return Promise.reject(new Error('needs-tap'));
+  if(!tokenClient) return Promise.reject(new Error('Google sign-in is still loading. Try again in a moment.'));
+  return new Promise((res, rej) => { pendingTok = {res, rej}; tokenClient.requestAccessToken({prompt: DEV.sync ? '' : 'consent'}); });
+}
+async function gfetch(url, opts={}){
+  const r = await fetch(url, {...opts, headers:{...(opts.headers||{}), Authorization:'Bearer '+token}});
+  if(r.status===401){ token = null; throw new Error('needs-tap'); }
+  if(!r.ok) throw new Error(`Google Drive answered ${r.status}`);
+  return r;
+}
+async function syncNow(interactive){
+  if(syncing) return;
+  try{ await getToken(interactive); }
+  catch(e){ if(e.message==='needs-tap'){ DEV.pending = true; render(); } else toast(e.message); return; }
+  syncing = true; render();
+  try{
+    const q = encodeURIComponent(`name='${SYNC_FILE}' and trashed=false`);
+    const list = await (await gfetch(`${DRIVE}/drive/v3/files?spaces=appDataFolder&q=${q}&fields=files(id,modifiedTime)`)).json();
+    const file = list.files && list.files[0];
+    let merged = S;
+    if(file){
+      const remote = await (await gfetch(`${DRIVE}/drive/v3/files/${file.id}?alt=media`)).json();
+      if(remote && remote.app==='leave-register') merged = mergeState(S, remote);
+    }
+    const body = JSON.stringify(exportObj(merged));
+    if(file) await gfetch(`${DRIVE}/upload/drive/v3/files/${file.id}?uploadType=media`, {method:'PATCH', headers:{'Content-Type':'application/json'}, body});
+    else {
+      const fd = new FormData();
+      fd.append('metadata', new Blob([JSON.stringify({name:SYNC_FILE, parents:['appDataFolder']})], {type:'application/json'}));
+      fd.append('file', new Blob([body], {type:'application/json'}));
+      await gfetch(`${DRIVE}/upload/drive/v3/files?uploadType=multipart`, {method:'POST', body:fd});
+    }
+    S = mergeState(S, merged);             // keeps any edit made while syncing
+    if(!S.profiles.some(p=>p.id===S.active)) S.active = S.profiles[0]?.id || null;
+    persistLocal();
+    const first = !DEV.sync;
+    DEV.sync = true; DEV.lastSync = now(); DEV.pending = false; DEV.error = ''; saveDev();
+    if(interactive) toast(first ? 'Google Drive connected and synced' : 'Synced with Google Drive');
+  }catch(e){
+    if(e.message==='needs-tap') DEV.pending = true;
+    else { DEV.error = e.message; if(interactive) toast('Sync did not finish: ' + e.message); }
+    saveDev();
+  }finally{ syncing = false; render(); }
+}
+function scheduleSync(){
+  if(!DEV.sync || !syncAvailable()) return;
+  DEV.pending = true;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(()=>{ if(token && now() < tokenExp - 60000) syncNow(false); else render(); }, 2500);
+}
+function syncOff(){
+  try{ if(token && window.google) google.accounts.oauth2.revoke(token, ()=>{}); }catch(e){}
+  token = null; DEV = {}; saveDev(); render(); toast('Google Drive disconnected. Your data stays on this device.');
+}
+const ago = t => { const m = Math.round((now()-t)/60000); return m<1 ? 'just now' : m<60 ? `${m} min ago` : m<1440 ? `${Math.round(m/60)} h ago` : fmt(iso(new Date(t))); };
+function syncBadge(){
+  if(!syncAvailable() || !DEV.sync) return '';
+  const txt = syncing ? 'Syncing…' : DEV.error ? 'Sync problem' : DEV.pending ? 'Tap to sync' : `Synced ${ago(DEV.lastSync)}`;
+  return `<button class="syncb ${DEV.error?'err':DEV.pending?'pending':''}" data-act="sync-now">${txt}</button>`;
+}
+function syncSection(){
+  let body;
+  if(onClaude()) body = `<p class="small muted">Sync works in the app on your own site (GitHub Pages). This preview keeps data in this browser only.</p>`;
+  else if(!GOOGLE_CLIENT_ID) body = `<p class="small muted">Not set up yet. Add your Google Client ID to <b>index.html</b> as described in the README, and a Connect button appears here.</p>`;
+  else if(!DEV.sync) body = `<p class="small">Keep this register the same on your phone and computer. It is saved in a hidden app folder in your own Google Drive that only this app can see.</p>
+      <div class="btns"><button class="btn primary" data-act="sync-now" ${tokenClient?'':'disabled'}>${tokenClient?'Connect Google Drive':'Loading Google sign-in…'}</button></div>`;
+  else body = `<p class="small">${syncing?'Syncing now…':DEV.lastSync?`Last synced ${ago(DEV.lastSync)}.`:'Not synced yet.'}${DEV.pending&&!syncing?' Changes are waiting to be synced.':''}</p>
+      ${DEV.error?`<div class="banner err">${esc(DEV.error)}</div>`:''}
+      <div class="btns"><button class="btn primary" data-act="sync-now">Sync now</button><button class="btn ghost" data-act="sync-off">Disconnect</button></div>
+      <p class="tiny muted">After you open the app, tap Sync once. Changes then sync by themselves for about an hour.</p>`;
+  return `<h2>Google Drive sync</h2><div class="panel" style="padding:14px 16px">${body}</div>`;
+}
+const ui = { tab:'home', year:curYear(), logYear:'all', hYear:curYear(), sheet:null };
+const activeProfile = () => S.profiles.find(p=>p.id===S.active) || S.profiles[0] || null;
+
+/* ---------------------------------------------------------------- holidays */
+let PH = new Set(), RHS = new Set();
+function refreshHolidaySets(){
+  PH = new Set(S.holidays.filter(h=>h.kind==='public').map(h=>h.date));
+  RHS = new Set(S.holidays.filter(h=>h.kind==='rh').map(h=>h.date));
+}
+const isWorking = s => { const w=dow(s); return w!==0 && w!==6 && !PH.has(s); };
+
+/* ---------------------------------------------------------------- day counting */
+function daysByMonth(e){
+  const out = {}; if(!e.from) return out;
+  const t = TYPE[e.type]; const cal = t && t.count==='calendar';
+  const end = e.to || e.from;
+  if(e.dur!=='full'){ out[e.from.slice(0,7)] = (cal || isWorking(e.from)) ? 0.5 : 0; return out; }
+  let d = e.from, n = 0;
+  while(d<=end && n<3700){ const k=d.slice(0,7); out[k]=(out[k]||0)+((cal||isWorking(d))?1:0); d=addDays(d,1); n++; }
+  return out;
+}
+
+/* ---------------------------------------------------------------- earned leave credits */
+function eolDaysIn(L, hs, he){
+  let n = 0;
+  L.forEach(e=>{ if(e.type!=='EOL' || e.cat!=='used') return;
+    for(const [k,v] of Object.entries(e.byMonth)) if(k>=hs.slice(0,7) && k<=he.slice(0,7)) n+=v; });
+  return n;
+}
+function elCredits(p, L, untilYear){
+  const R = RULES.el, out = [], join = p.joinDate;
+  if(!join) return out;
+  const approved = p.category==='approved';
+  const declared = approved ? (p.probationDate && p.probationDate>join ? p.probationDate : join) : null;
+  // Basic service: advance credit only once 5 years of regular service are complete
+  const advanceFrom = !approved ? null : p.service==='basic' ? [declared, addYears(join,R.basicAdvanceYears)].sort()[1] : declared;
+  let y = +join.slice(0,4), h = +join.slice(5,7)<=6 ? 0 : 1, carryCut = 0;
+  while(y<=untilYear){
+    const hs = `${y}-${h?'07':'01'}-01`, he = h ? `${y}-12-31` : `${y}-06-30`, next = h ? `${y+1}-01-01` : `${y}-07-01`;
+    const hn = `${h?'Jul–Dec':'Jan–Jun'} ${y}`;
+    const eol = eolDaysIn(L, hs, he);
+    const start = join>hs ? join : hs;
+    if(advanceFrom && advanceFrom<=hs){
+      const amt = Math.max(0, R.advance - carryCut);
+      out.push({date:hs, amount:amt, cap:R.advanceCap, note:`Advance credit, ${hn}`+(carryCut?` (less ${carryCut} for EOL)`:'')});
+      carryCut = Math.min(R.eolAdvanceMax, Math.round(eol/R.eolAdvanceDiv));
+    } else if(advanceFrom && advanceFrom<=he && p.service==='superior'){
+      // Half-year in which probation is declared (or joined already approved)
+      let pairMonths = 0, afterMonths;
+      if(advanceFrom===join){ afterMonths = completedMonths(join, he); }
+      else { pairMonths = completedMonths(start, monthEnd(advanceFrom)); afterMonths = completedMonths(nextMonthStart(advanceFrom), he); }
+      const a = Math.round(afterMonths*R.monthRate);
+      if(a>0) out.push({date:advanceFrom, amount:a, cap:R.advanceCap, note:`${afterMonths} completed months after probation, ${hn}`});
+      const b = Math.round(Math.floor(pairMonths/2)*R.pairRate);
+      if(b>0) out.push({date:next, amount:b, cap:R.advanceCap, note:`${pairMonths} completed months as probationer, ${hn}`});
+      carryCut = Math.min(R.eolAdvanceMax, Math.round(eol/R.eolAdvanceDiv));
+    } else {
+      const months = completedMonths(start, he);
+      const cut = Math.min(R.eolPairsMax, Math.round(eol/R.eolPairsDiv));
+      const amt = Math.max(0, Math.round(Math.floor(months/2)*R.pairRate) - cut);
+      if(months>0) out.push({date:next, amount:amt, cap:R.pairCap, note:`${months} completed months, ${hn}`+(cut?` (less ${cut} for EOL)`:'')});
+      carryCut = Math.min(R.eolAdvanceMax, Math.round(eol/R.eolAdvanceDiv));
+    }
+    if(h){ h=0; y++; } else h=1;
+  }
+  return out;
+}
+function elRuleText(p){
+  const R = RULES.el;
+  if(!p.joinDate) return 'Add your joining date to calculate Earned Leave.';
+  if(p.category!=='approved' || (p.service==='basic'))
+    return p.category==='approved' && p.service==='basic'
+      ? `Basic service: ${R.pairRate} days for every 2 completed months (credited at the end of each half-year, up to ${R.pairCap}) until 5 years of service, then ${R.advance} days in advance on 1 Jan and 1 Jul (up to ${R.advanceCap}).`
+      : `${R.pairRate} days for every 2 completed months of service in a half-year, credited when the half-year ends. No advance credit. Balance kept up to ${R.pairCap} days.`;
+  return `${R.advance} days in advance on 1 January and 1 July, kept up to ${R.advanceCap} days. In the half-year probation is declared, ${R.monthRate} days for each completed month after that.`;
+}
+
+/* ---------------------------------------------------------------- the engine */
+function compute(p){
+  refreshHolidaySets();
+  const today = todayISO(), st = S.settings;
+  const L = p.leaves.map(e=>{
+    const byMonth = daysByMonth(e), byYear = {};
+    for(const [k,v] of Object.entries(byMonth)){ const y=k.slice(0,4); byYear[y]=(byYear[y]||0)+v; }
+    return {...e, end:e.to||e.from, byMonth, byYear, days:Object.values(byMonth).reduce((a,b)=>a+b,0),
+            cat:STATUS_CAT[e.status]||'ignored', t:TYPE[e.type], msgs:[]};
+  }).sort((a,b)=> a.from<b.from?-1 : a.from>b.from?1 : (a.created||0)-(b.created||0));
+  const live = L.filter(e=>e.cat!=='ignored' && e.from);
+
+  /* turn duty */
+  const duties = p.duties.map(d=>({...d, valid:addMonths(d.date, st.cllMonths), used:0, planned:0})).sort((a,b)=>a.date<b.date?-1:1);
+  const dutyMap = {}; duties.forEach(d=>{ if(!dutyMap[d.date]) dutyMap[d.date]=d; });
+  live.forEach(e=>{ if(e.type==='CLL' && dutyMap[e.duty]) dutyMap[e.duty][e.cat] += e.days; });
+  const perYear = {};
+  duties.forEach(d=>{
+    const left = d.credit - d.used, expired = d.valid < today;
+    d.balance = expired ? 0 : Math.max(0,left);
+    d.after = expired ? 0 : Math.max(0,left-d.planned);
+    d.lapsed = expired ? Math.max(0,left) : 0;
+    d.status = left<=0 ? 'Used' : expired ? 'Expired' : d.after<=0 ? 'Fully planned' : diffDays(today,d.valid)<=30 ? 'Expiring soon' : 'Active';
+    const y = d.date.slice(0,4); perYear[y]=(perYear[y]||0)+d.credit; d.overCap = perYear[y] > st.cllYearCap;
+  });
+
+  /* earned leave ledger */
+  const years = L.map(e=>+e.from.slice(0,4)).concat(duties.map(d=>+d.date.slice(0,4)));
+  const untilYear = Math.max(curYear()+1, ...years.filter(Boolean));
+  const credits = elCredits(p, L, untilYear);
+  const ledger = withPlanned => {
+    const ev = [];
+    credits.forEach(c=>ev.push({date:c.date, kind:'credit', amount:c.amount, cap:c.cap, note:c.note, ord:0}));
+    p.elAdjust.forEach(a=>ev.push({date:a.date, kind:'adjust', amount:+a.days||0, note:a.note||'Adjustment', ord:1, id:a.id}));
+    L.forEach(e=>{
+      if(e.type!=='EL' || !(e.cat==='used' || (withPlanned && e.cat==='planned'))) return;
+      for(const [y,v] of Object.entries(e.byYear)) if(v>0)
+        ev.push({date: y===e.from.slice(0,4)?e.from:`${y}-01-01`, kind:'leave', amount:-v, entryId:e.id, cat:e.cat,
+                 note:`${CAT_LABEL[e.cat]}: ${fmt(e.from)}${e.end!==e.from?' to '+fmt(e.end):''}`, ord:2});
+    });
+    ev.sort((a,b)=> a.date<b.date?-1 : a.date>b.date?1 : a.ord-b.ord);
+    let bal = 0;
+    ev.forEach(x=>{
+      if(x.kind==='credit'){ x.credited = Math.max(0, Math.min(x.amount, x.cap-bal)); x.overCap = x.amount-x.credited; bal += x.credited; }
+      else { x.credited = x.amount; bal += x.amount; }
+      x.balance = bal;
+    });
+    return ev;
+  };
+  const elUsed = ledger(false), elAll = ledger(true);
+  const balAt = (ev, date, strict) => { let b=0; for(const x of ev){ if(strict ? x.date<date : x.date<=date) b=x.balance; else break; } return b; };
+  const elShort = {}; elAll.forEach(x=>{ if(x.kind==='leave' && x.balance<0) elShort[x.entryId] = Math.min(elShort[x.entryId]??0, x.balance); });
+
+  /* checks */
+  const combo = new Set(), regular = new Set();
+  live.forEach(e=>{
+    if(!e.t) return;
+    const set = e.t.combo ? combo : (e.t.count==='calendar' ? regular : null); if(!set) return;
+    let d=e.from, n=0; while(d<=e.end && n<3700){ set.add(d); d=addDays(d,1); n++; }
+  });
+  const running = {};
+  L.forEach(e=>{
+    const m = e.msgs, t = e.t, err = s=>m.push({lv:'err',text:s}), warn = s=>m.push({lv:'warn',text:s});
+    if(!e.from){ err('Choose a From date'); return; }
+    if(e.cat==='ignored') return;
+    if(!t){ err('Unknown leave type'); return; }
+    if(e.to && e.to<e.from) err('To date is before From date');
+    if(e.dur!=='full' && e.end!==e.from) err('A half day must be a single date');
+    if(e.dur!=='full' && !t.half) err(`Half day is not allowed for ${t.code}`);
+    if(t.kind==='duty'){
+      const d = dutyMap[e.duty];
+      if(!e.duty) err('Choose the turn duty this leave is against');
+      else if(!d) err('That duty date is not on the Duty page');
+      else {
+        if(e.from<d.date) err('Leave is before the duty date');
+        else if(e.from>d.valid) err(`Compensatory leave lapsed on ${fmt(d.valid)}`);
+        if(d.used+d.planned > d.credit) err(`More than the ${num(d.credit)} day credit for duty on ${fmt(d.date)}`);
+      }
+      if(!p.cllEligible) warn('Compensatory leave is switched off in your profile');
+    }
+    if(t.kind==='yearly'){
+      const ent = (t.notTemporary && p.category==='temporary') ? 0 : t.ent;
+      for(const [y,v] of Object.entries(e.byYear)){
+        const k=t.code+y; running[k]=(running[k]||0)+v;
+        if(running[k]>ent) err(ent===0 ? `${t.code} is not available to temporary staff` : `Over the ${t.code} limit for ${y} (${num(running[k])} of ${ent})`);
+      }
+    }
+    if(t.kind==='el'){
+      if(elShort[e.id]!==undefined) err(`Not enough EL at credit (short by ${num(-elShort[e.id])})`);
+      const max = p.category==='approved' && p.service==='superior' ? RULES.el.maxAtATimeApproved : RULES.el.maxAtATimeOther;
+      if(e.days>max) warn(`More than ${max} days of EL at a time`);
+    }
+    // overlap
+    for(const o of live){
+      if(o.id===e.id || !o.from) continue;
+      if(o.from<=e.end && e.from<=o.end){
+        const halves = e.dur!=='full' && o.dur!=='full' && e.from===e.end && o.from===o.end && e.dur!==o.dur;
+        if(!halves){ err(`Overlaps ${o.type} on ${fmtS(o.from)}`); break; }
+      }
+    }
+    if(t.count==='working' && e.days===0 && !(e.to && e.to<e.from)) warn('Falls only on a weekend or holiday, counts 0 days');
+    if(t.count==='calendar' && e.dur==='full' && (!isWorking(e.from) || !isWorking(e.end)))
+      warn('Starts or ends on a holiday. Holidays are usually prefixed or suffixed, not counted as leave');
+    if(t.rhList && !RHS.has(e.from)) warn('Date is not in the RH list');
+    if(t.combo){
+      let lo=e.from, hi=e.end, n=0;
+      while(n++<90){ const q=addDays(lo,-1); if(!isWorking(q)||combo.has(q)) lo=q; else break; }
+      n=0; while(n++<90){ const q=addDays(hi,1); if(!isWorking(q)||combo.has(q)) hi=q; else break; }
+      const span = diffDays(lo,hi)+1;
+      if(span>st.maxConsec) warn(`${span} days away in a row with holidays, CL, RH and CLL (limit ${st.maxConsec})`);
+      if(t.noRegular && (regular.has(addDays(lo,-1)) || regular.has(addDays(hi,1)))) warn(`${t.code} cannot normally be joined to EL or other regular leave`);
+    }
+    if(e.cat==='planned' && e.end<today) warn('Planned date has passed. Update the status');
+  });
+  L.forEach(e=>{ e.level = e.msgs.some(m=>m.lv==='err') ? 'err' : e.msgs.length ? 'warn' : 'ok'; });
+
+  const nextCredit = elAll.find(x=>x.kind==='credit' && x.date>today && x.credited>0);
+  return {p, L, live, duties, dutyMap, credits, elUsed, elAll, balAt, today, nextCredit, untilYear};
+}
+
+function yearSummary(C, Y){
+  const {p, live, duties, elUsed, elAll, balAt, today} = C;
+  const ys = `${Y}-01-01`, ye = `${Y}-12-31`, yk = String(Y);
+  const sumType = (code, cat) => live.filter(e=>e.type===code && e.cat===cat).reduce((a,e)=>a+(e.byYear[yk]||0),0);
+  const inYear = ev => ev.filter(x=>x.date.slice(0,4)===yk);
+  const el = {
+    opening: balAt(elUsed, ys, true),
+    credited: inYear(elUsed).filter(x=>x.kind==='credit').reduce((a,x)=>a+x.credited,0),
+    adjust: inYear(elUsed).filter(x=>x.kind==='adjust').reduce((a,x)=>a+x.amount,0),
+    used: sumType('EL','used'), planned: sumType('EL','planned'),
+    closing: balAt(elUsed, ye), closingAfter: balAt(elAll, ye), today: balAt(elUsed, today), todayAfter: balAt(elAll, today)
+  };
+  const yearly = code => { const t=TYPE[code]; const ent=(t.notTemporary && p.category==='temporary')?0:t.ent;
+    const used=sumType(code,'used'), planned=sumType(code,'planned'); return {ent, used, planned, balance:ent-used, after:ent-used-planned}; };
+  const cll = {
+    earned: duties.filter(d=>d.date.slice(0,4)===yk).reduce((a,d)=>a+d.credit,0),
+    used: sumType('CLL','used'), planned: sumType('CLL','planned'),
+    lapsed: duties.filter(d=>d.valid.slice(0,4)===yk).reduce((a,d)=>a+d.lapsed,0),
+    now: duties.reduce((a,d)=>a+d.balance,0), expiring: duties.filter(d=>d.status==='Expiring soon').length
+  };
+  const others = RULES.types.filter(t=>t.kind==='track').map(t=>({t, used:sumType(t.code,'used'), planned:sumType(t.code,'planned')}));
+  const months = Array.from({length:12},()=>({used:0,planned:0}));
+  live.forEach(e=>{ for(const [k,v] of Object.entries(e.byMonth)) if(k.startsWith(yk+'-') && e.cat!=='ignored') months[+k.slice(5,7)-1][e.cat]+=v; });
+  const taken = months.reduce((a,m)=>a+m.used,0), planned = months.reduce((a,m)=>a+m.planned,0);
+  return {el, cl:yearly('CL'), rh:yearly('RH'), cll, others, months, taken, planned};
+}
+function yearsOf(C){
+  const p = C.p, ys = new Set([curYear()]);
+  if(p.joinDate) for(let y=+p.joinDate.slice(0,4); y<=curYear()+1; y++) ys.add(y);
+  C.L.forEach(e=>e.from && ys.add(+e.from.slice(0,4)));
+  return [...ys].sort();
+}
+
+/* ---------------------------------------------------------------- icons */
+const ICON = {
+  home:'<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/>',
+  log:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/>',
+  duty:'<circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/>',
+  hol:'<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>',
+  more:'<circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/>'
+};
+const svgI = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[k]}</svg>`;
+
+/* ---------------------------------------------------------------- rendering */
+const $ = id => document.getElementById(id);
+let C = null;
+
+function render(){
+  const p = activeProfile();
+  if(!p){ renderWelcome(); return; }
+  if(S.active!==p.id) S.active = p.id;
+  C = compute(p);
+  const years = yearsOf(C);
+  if(!years.includes(ui.year)) ui.year = curYear();
+  const showYear = ui.tab==='home';
+  $('top').innerHTML = `<div class="top-in">
+    <div><div class="brand">Leave Register</div><button class="who" data-act="switch">${esc(p.name||'My register')}${S.profiles.length>1?' ▾':''}</button></div>
+    <div class="spacer"></div>
+    ${syncBadge()}
+    ${showYear?`<label class="sr"><span class="muted small" style="margin-right:6px">Year</span><select class="yearsel" data-act="year">${years.map(y=>`<option ${y===ui.year?'selected':''}>${y}</option>`).join('')}</select></label>`:''}
+  </div>`;
+  const tabs = [['home','Home'],['log','Leave'],['duty','Duty'],['hol','Holidays'],['more','More']];
+  $('tabs').innerHTML = `<div class="tabs-in">${tabs.map(([k,l])=>`<button class="tab" data-act="tab" data-tab="${k}" ${ui.tab===k?'aria-current="page"':''}>${svgI(k)}${l}</button>`).join('')}</div>`;
+  const views = {home:viewHome, log:viewLog, duty:viewDuty, hol:viewHolidays, more:viewMore};
+  $('main').innerHTML = views[ui.tab]() + (['home','log'].includes(ui.tab) ? `<button class="btn primary fab" data-act="add-leave">+ Add leave</button>` : '');
+}
+
+function bigClass(v){ return v<0 ? 'neg' : v<=S.settings.lowBal ? 'low' : ''; }
+
+function viewHome(){
+  const Y = ui.year, s = yearSummary(C, Y), cur = Y===curYear(), p = C.p, past = Y<curYear();
+  const elBig = cur ? s.el.today : s.el.closing;
+  const elSub = [];
+  if(cur) elSub.push(`At credit today. After planned leave: ${num(s.el.closingAfter)} by 31 Dec.`);
+  else elSub.push(`${past?'Balance':'Expected balance'} on 31 Dec ${Y}. Credited ${num(s.el.credited)}, used ${num(s.el.used)}${s.el.planned?`, planned ${num(s.el.planned)}`:''}.`);
+  if(cur && C.nextCredit) elSub.push(`Next credit: ${num(C.nextCredit.credited)} days on ${fmt(C.nextCredit.date)}.`);
+  if(!p.joinDate) elSub.push('Add your joining date in More to calculate EL.');
+  const yr = (code, r) => `<div class="lrow"><span class="lcode">${code}</span><span class="lname">${TYPE[code].name}</span><span class="big ${bigClass(r.balance)}">${num(r.balance)}<small>left</small></span>
+    <span class="lsub">${r.ent===0&&code==='RH'&&p.category==='temporary' ? 'Not available to temporary staff.' : `Used ${num(r.used)} of ${r.ent}${r.planned?`, ${num(r.planned)} planned (${num(r.after)} left after)`:''}.`}</span></div>`;
+  const issues = C.L.filter(e=>e.cat!=='ignored' && e.level!=='ok');
+  const dutyIssues = C.duties.filter(d=>d.status==='Expiring soon');
+  const upcoming = C.live.filter(e=>e.cat==='planned' && e.end>=C.today).slice(0,5);
+  const others = s.others.filter(o=>o.used||o.planned);
+  return `
+  ${!S.lastBackup && !DEV.sync && C.L.length>=3 ? `<div class="banner warn"><b>No backup yet</b>Your leave data lives only on this device. <a href="#" data-act="tab" data-tab="more">Download a backup</a> to keep it safe.</div>`:''}
+  <h2>Balances, ${Y}</h2>
+  <div class="ledger">
+    <div class="lrow"><span class="lcode">EL</span><span class="lname">Earned Leave</span><span class="big ${bigClass(elBig)}">${num(elBig)}<small>days</small></span><span class="lsub">${elSub.join(' ')}</span></div>
+    ${yr('CL', s.cl)}
+    ${yr('RH', s.rh)}
+    ${p.cllEligible ? `<div class="lrow"><span class="lcode">CLL</span><span class="lname">Compensatory Leave</span><span class="big">${num(cur?s.cll.now:s.cll.earned-s.cll.used-s.cll.lapsed)}<small>${cur?'valid':'left'}</small></span>
+      <span class="lsub">${cur?`${s.cll.expiring? `${plural(s.cll.expiring,'credit')} expiring within 30 days. `:''}`:''}Earned ${num(s.cll.earned)} in ${Y}, used ${num(s.cll.used)}${s.cll.planned?`, planned ${num(s.cll.planned)}`:''}${s.cll.lapsed?`, lapsed ${num(s.cll.lapsed)}`:''}.</span></div>`:''}
+  </div>
+
+  ${issues.length||dutyIssues.length ? `<h2>Needs a look</h2><div class="panel"><ul class="list">
+    ${issues.slice(0,6).map(e=>`<li>${itemHTML(e)}</li>`).join('')}
+    ${dutyIssues.map(d=>`<li><button class="item" data-act="edit-duty" data-id="${d.id}"><span class="dateblk"><b>${+d.date.slice(8,10)}</b><span>${MON[+d.date.slice(5,7)-1]}</span></span><span><span class="t">Duty credit expiring</span><br><span class="d">Use by ${fmt(d.valid)}</span></span><span class="stamp warn">${num(d.balance)} left</span></button></li>`).join('')}
+  </ul></div>${issues.length>6?`<p class="small muted" style="margin-top:8px">${issues.length-6} more on the Leave page.</p>`:''}` : `<div class="banner ok" style="margin-top:16px">All entries check out against the rules.</div>`}
+
+  <h2>Coming up</h2>
+  <div class="panel">${upcoming.length ? `<ul class="list">${upcoming.map(e=>`<li>${itemHTML(e)}</li>`).join('')}</ul>` : `<div class="empty">No planned leave ahead.</div>`}</div>
+
+  <h2>Days away by month</h2>
+  <div class="panel">${chartHTML(s.months)}
+    <div class="legend"><span><i style="background:var(--blue)"></i>Taken ${num(s.taken)}</span><span><i style="border:1.5px dashed var(--blue)"></i>Planned ${num(s.planned)}</span></div></div>
+
+  ${others.length ? `<h2>Other leave, ${Y}</h2><div class="panel scroll"><table class="grid"><thead><tr><th>Type</th><th>Taken</th><th>Planned</th></tr></thead><tbody>
+    ${others.map(o=>`<tr><td class="l">${o.t.name}</td><td>${num(o.used)}</td><td>${num(o.planned)}</td></tr>`).join('')}</tbody></table></div>` : ''}
+  `;
+}
+
+function chartHTML(months){
+  const W=360, H=150, top=18, base=H-22, bw=18, gap=(W-24)/12;
+  const max = Math.max(1, ...months.map(m=>m.used+m.planned));
+  let g = `<line x1="8" x2="${W-8}" y1="${base}" y2="${base}" stroke="var(--rule)"/>`;
+  months.forEach((m,i)=>{
+    const x = 12 + i*gap + (gap-bw)/2, hu = (m.used/max)*(base-top), hp = (m.planned/max)*(base-top);
+    if(hu>0) g += `<rect x="${x}" y="${base-hu}" width="${bw}" height="${hu}" rx="2" fill="var(--blue)"/>`;
+    if(hp>0) g += `<rect x="${x+0.75}" y="${base-hu-hp+0.75}" width="${bw-1.5}" height="${Math.max(0,hp-1.5)}" rx="2" fill="none" stroke="var(--blue)" stroke-width="1.5" stroke-dasharray="3 2"/>`;
+    const tot = m.used+m.planned;
+    if(tot>0) g += `<text x="${x+bw/2}" y="${base-hu-hp-4}" text-anchor="middle" style="fill:var(--ink);font-weight:700">${num(tot)}</text>`;
+    g += `<text x="${x+bw/2}" y="${H-6}" text-anchor="middle">${MON[i][0]}</text>`;
+  });
+  return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Leave days per month">${g}</svg></div>`;
+}
+
+function itemHTML(e){
+  const first = e.msgs.find(m=>m.lv==='err') || e.msgs[0];
+  const range = e.end && e.end!==e.from ? `${fmtS(e.from)} – ${fmt(e.end)}` : `${DAYS[dow(e.from)]}, ${fmt(e.from)}`;
+  const durTxt = e.dur==='fn' ? 'forenoon' : e.dur==='an' ? 'afternoon' : '';
+  return `<button class="item" data-act="edit-leave" data-id="${e.id}">
+    <span class="dateblk"><b>${+e.from.slice(8,10)}</b><span>${MON[+e.from.slice(5,7)-1]}</span></span>
+    <span><span class="t">${esc(e.t?e.t.name:e.type)}</span> <span class="d">· ${plural(e.days,'day')}${durTxt?' '+durTxt:''}</span><br><span class="d">${range}${e.note?' — '+esc(e.note):''}</span></span>
+    <span class="stamp ${e.cat}">${esc(e.status)}</span>
+    ${first && e.cat!=='ignored' ? `<span class="msg ${first.lv}">${esc(first.text)}${e.msgs.length>1?` (+${e.msgs.length-1} more)`:''}</span>`:''}
+  </button>`;
+}
+
+function viewLog(){
+  const years = [...new Set(C.L.map(e=>e.from.slice(0,4)))].sort().reverse();
+  const f = ui.logYear;
+  const list = C.L.filter(e=>f==='all' || e.from.startsWith(f)).slice().reverse();
+  let html = `<h2>Leave</h2>
+  <div class="chips" role="group" aria-label="Filter by year">
+    <button class="chip" data-act="logyear" data-y="all" aria-pressed="${f==='all'}">All</button>
+    <button class="chip" data-act="logyear" data-y="issues" aria-pressed="${f==='issues'}">Needs a look</button>
+    ${years.map(y=>`<button class="chip" data-act="logyear" data-y="${y}" aria-pressed="${f===y}">${y}</button>`).join('')}
+  </div>`;
+  const shown = f==='issues' ? C.L.filter(e=>e.cat!=='ignored'&&e.level!=='ok').slice().reverse() : list;
+  if(!shown.length) return html + `<div class="panel"><div class="empty">${C.L.length? 'Nothing here.' : 'No leave yet. Tap “Add leave” to record your first one.'}</div></div>`;
+  let cur = '';
+  shown.forEach(e=>{
+    const k = e.from.slice(0,7);
+    if(k!==cur){ if(cur) html += '</ul></div>'; cur=k; html += `<div class="monthhead">${MONTHS[+k.slice(5,7)-1]} ${k.slice(0,4)}</div><div class="panel"><ul class="list">`; }
+    html += `<li>${itemHTML(e)}</li>`;
+  });
+  return html + '</ul></div>';
+}
+
+function viewDuty(){
+  const p = C.p;
+  const rows = C.duties.slice().reverse();
+  const tone = {'Active':'planned','Expiring soon':'warn','Expired':'dim','Used':'used','Fully planned':'used'};
+  return `<h2>Holiday turn duty</h2>
+  <p class="muted small">Each duty on a holiday earns compensatory leave. A credit lapses ${S.settings.cllMonths} months after the duty. When you take CLL, pick the duty it is against.</p>
+  ${!p.cllEligible ? `<div class="banner info">Compensatory leave is switched off in your profile, so it is hidden on Home. Switch it on in More.</div>`:''}
+  <div class="btns"><button class="btn primary" data-act="add-duty">+ Add turn duty</button></div>
+  <div class="panel">${rows.length ? `<ul class="list">${rows.map(d=>`<li><button class="item" data-act="edit-duty" data-id="${d.id}">
+    <span class="dateblk"><b>${+d.date.slice(8,10)}</b><span>${MON[+d.date.slice(5,7)-1]} ${d.date.slice(2,4)}</span></span>
+    <span><span class="t">${DAYS[dow(d.date)]}</span> <span class="d">· earned ${num(d.credit)}</span><br><span class="d">Valid until ${fmt(d.valid)}. Used ${num(d.used)}${d.planned?`, planned ${num(d.planned)}`:''}.${d.note?' '+esc(d.note):''}</span></span>
+    <span class="stamp ${tone[d.status]}">${d.status}</span>
+    ${d.overCap?`<span class="msg warn">More than ${S.settings.cllYearCap} compensatory credits in ${d.date.slice(0,4)}</span>`:''}
+    ${isWorking(d.date)?`<span class="msg warn">${fmtS(d.date)} is a working day, not a holiday</span>`:''}
+  </button></li>`).join('')}</ul>` : `<div class="empty">No turn duty yet.</div>`}</div>`;
+}
+
+function viewHolidays(){
+  const Y = String(ui.hYear);
+  const ys = new Set(S.holidays.map(h=>h.date.slice(0,4))); ys.add(String(curYear())); ys.add(String(curYear()+1));
+  const yrs = [...ys].sort();
+  const pub = S.holidays.filter(h=>h.kind==='public' && h.date.startsWith(Y)).sort((a,b)=>a.date<b.date?-1:1);
+  const rh = S.holidays.filter(h=>h.kind==='rh' && h.date.startsWith(Y)).sort((a,b)=>a.date<b.date?-1:1);
+  const draft = pub.some(h=>h.draft);
+  const row = h => `<div class="hrow ${dow(h.date)%6===0?'we':''}"><span><b>${fmtS(h.date)}</b><br><span class="tiny muted">${DAYS[dow(h.date)].slice(0,3)}</span></span><span>${esc(h.name)}</span>
+    <button class="x" data-act="del-hol" data-k="${h.kind}|${h.date}|${esc(h.name)}" aria-label="Remove ${esc(h.name)}">×</button></div>`;
+  return `<h2>Holidays</h2>
+  <div class="chips" role="group" aria-label="Year">${yrs.map(y=>`<button class="chip" data-act="hyear" data-y="${y}" aria-pressed="${y===Y}">${y}</button>`).join('')}</div>
+  <p class="muted small">Public holidays are not counted as working days. When you take a Restricted Holiday, the date is checked against the RH list.</p>
+  ${draft ? `<div class="banner warn"><b>Check this list</b>The ${Y} public holidays were filled in from memory, not from the Government Order. Compare them with the TN G.O., fix any date, then confirm.<div class="btns" style="margin-bottom:0"><button class="btn" data-act="confirm-hol" data-y="${Y}">I checked the ${Y} list</button></div></div>`:''}
+  <div class="btns"><button class="btn primary" data-act="add-hol">+ Add holiday</button><button class="btn" data-act="paste-hol">Paste a list</button></div>
+  <h3>Public holidays <span class="muted small">(${pub.length})</span></h3>
+  <div class="panel">${pub.length ? pub.map(row).join('') : `<div class="empty">No public holidays for ${Y}. Add them so leave days are counted correctly.</div>`}</div>
+  <h3>Restricted Holidays list <span class="muted small">(${rh.length})</span></h3>
+  <div class="panel">${rh.length ? rh.map(row).join('') : `<div class="empty">No RH list for ${Y} yet.</div>`}</div>`;
+}
+
+const SERVICE = {superior:'Superior service', basic:'Basic service'};
+const CATEGORY = {temporary:'Temporary', probationer:'Probationer (not yet declared)', approved:'Approved probationer / permanent'};
+
+function viewMore(){
+  const p = C.p, st = S.settings;
+  const lastB = S.lastBackup ? fmt(S.lastBackup) : 'never';
+  const ledger = C.elUsed.filter(x=>x.date<=`${curYear()}-12-31`);
+  return `<h2>Profile</h2>
+  <div class="panel"><dl class="kv">
+    <dt>Name</dt><dd>${esc(p.name)}</dd>
+    <dt>Joined</dt><dd>${p.joinDate?fmt(p.joinDate):'—'}</dd>
+    <dt>Service</dt><dd>${SERVICE[p.service]}</dd>
+    <dt>Category</dt><dd>${CATEGORY[p.category]}${p.category==='approved'&&p.probationDate?`, from ${fmt(p.probationDate)}`:''}</dd>
+    <dt>Compensatory leave</dt><dd>${p.cllEligible?'Yes':'No'}</dd>
+  </dl><div style="padding:0 16px 14px"><p class="small muted">${esc(elRuleText(p))}</p><button class="btn" data-act="edit-profile">Edit profile</button></div></div>
+
+  <h2>People on this device</h2>
+  <div class="panel">${S.profiles.map(q=>`<div class="hrow" style="grid-template-columns:1fr auto"><span><b>${esc(q.name)}</b>${q.id===p.id?' <span class="muted small">(open)</span>':''}<br><span class="tiny muted">${q.leaves.length} leave entries</span></span>
+    ${q.id===p.id?'':`<button class="btn" data-act="open-profile" data-id="${q.id}">Open</button>`}</div>`).join('')}</div>
+  <div class="btns"><button class="btn" data-act="new-profile">+ Add another person</button></div>
+  <p class="small muted">Your friend can install the app on their own phone and keep their own register there. Add a second person here only when one phone is shared.</p>
+
+  ${syncSection()}
+
+  <h2>Backup</h2>
+  <div class="banner ${S.lastBackup||DEV.sync?'info':'warn'}">${DEV.sync?'Your data is on this device and in your Google Drive. A backup file is a good extra copy.':'Your data is stored only in this browser on this device.'} Last backup file: <b style="display:inline">${lastB}</b>.</div>
+  <div class="btns">
+    <button class="btn primary" data-act="backup">Download backup (.json)</button>
+    <button class="btn" data-act="restore">Restore from backup</button>
+    <button class="btn" data-act="excel">Download Excel (.xlsx)</button>
+  </div>
+  <p class="small muted">Restoring merges the file with what is here: the newest version of each entry is kept. The Excel file is a read-only copy for printing or sharing.</p>
+
+  <h2>Earned Leave account</h2>
+  <div class="panel scroll"><table class="grid"><thead><tr><th>Date</th><th style="text-align:left">Details</th><th>Days</th><th>Balance</th></tr></thead><tbody>
+    ${ledger.length ? ledger.map(x=>`<tr><td>${fmt(x.date)}</td><td class="l">${esc(x.note)}${x.overCap>0?` <span class="muted">(${num(x.overCap)} over the limit, not credited)</span>`:''}${x.kind==='adjust'?` <a href="#" data-act="del-adj" data-id="${x.id}">remove</a>`:''}</td><td>${x.credited>0?'+':''}${num(x.credited)}</td><td><b>${num(x.balance)}</b></td></tr>`).join('') : `<tr><td colspan="4" class="l muted">Nothing yet.</td></tr>`}
+  </tbody></table></div>
+  <div class="btns"><button class="btn" data-act="add-adj">+ Add EL adjustment</button></div>
+  <p class="small muted">Use an adjustment for EL brought from earlier service, EL surrendered for cash, or a correction to match your service register.</p>
+
+  <h2>Rules</h2>
+  <div class="panel" style="padding:14px 16px">
+    <label class="field"><span>Compensatory leave valid for (months)</span><input class="in" type="number" min="1" max="24" value="${st.cllMonths}" data-set="cllMonths"></label>
+    <label class="field"><span>Most days away in a row with CL, RH, CLL and holidays</span><input class="in" type="number" min="1" max="60" value="${st.maxConsec}" data-set="maxConsec"></label>
+    <label class="field"><span>Show a low balance at (days or fewer)</span><input class="in" type="number" min="0" max="30" value="${st.lowBal}" data-set="lowBal"></label>
+    <label class="field" style="margin-bottom:0"><span>Compensatory credits allowed per year</span><input class="in" type="number" min="1" max="100" value="${st.cllYearCap}" data-set="cllYearCap"></label>
+  </div>
+  <p class="small muted" style="margin-top:10px">Rules follow a summary of Tamil Nadu leave rules: CL 12 a year (half day allowed), RH 3 a year from the RH list, compensatory leave lapsing after 6 months, EL as described in your profile. EL, Unearned, Maternity and Extraordinary Leave count every calendar day; CL, RH and CLL count working days only. Rules change by Government Order — your service register is the final word.</p>
+
+  <h2>Remove</h2>
+  <div class="btns"><button class="btn danger" data-act="del-profile">Delete this register</button></div>
+  <p class="tiny muted" style="margin-top:24px">Leave Register is not an official Government tool. Your data stays on your device.</p>`;
+}
+
+function renderWelcome(){
+  $('top').innerHTML = ''; $('tabs').innerHTML = '';
+  $('main').innerHTML = `<div class="welcome">
+    <div class="brand">Leave Register</div>
+    <p class="muted">Keep track of your Earned Leave, Casual Leave, Restricted Holidays and compensatory leave under the Tamil Nadu rules. Everything stays on this device.</p>
+    <div class="panel" style="padding:16px;margin-top:16px">${profileForm({name:'',joinDate:'',service:'superior',category:'probationer',probationDate:'',cllEligible:true}, true)}
+      <div class="btns"><button class="btn primary" data-act="save-profile" data-new="1">Start my register</button></div></div>
+    <p class="small muted" style="margin-top:16px">Moving from another phone or from a backup?</p>
+    <div class="btns"><button class="btn" data-act="restore">Restore from backup</button>
+      ${syncAvailable()?`<button class="btn" data-act="sync-now" ${tokenClient?'':'disabled'}>Get my data from Google Drive</button>`:''}</div>
+  </div>`;
+  wireProfileForm();
+}
+
+/* ---------------------------------------------------------------- sheets (forms) */
+function openSheet(html){ $('layer').innerHTML = `<div class="scrim" data-act="scrim"><div class="sheet" role="dialog" aria-modal="true">${html}</div></div>`;
+  const f = $('layer').querySelector('input,select,textarea'); if(f && window.innerWidth>700) f.focus(); }
+function closeSheet(){ $('layer').innerHTML = ''; ui.sheet = null; }
+
+function leaveForm(e){
+  const p = activeProfile(), dutyOpts = C.duties.slice().reverse();
+  ui.sheet = {kind:'leave', id:e.id};
+  openSheet(`<h2>${e.id?'Edit leave':'Add leave'}</h2>
+  <form id="lf" autocomplete="off">
+    <div class="row2">
+      <label class="field"><span>From</span><input class="in" type="date" name="from" value="${e.from||''}" required></label>
+      <label class="field"><span>To</span><input class="in" type="date" name="to" value="${e.to||''}"><em>Leave empty for one day</em></label>
+    </div>
+    <label class="field"><span>Leave type</span><select class="in" name="type">${RULES.types.filter(t=>t.kind!=='duty'||p.cllEligible||e.type==='CLL').map(t=>`<option value="${t.code}" ${t.code===e.type?'selected':''}>${t.code} – ${t.name}</option>`).join('')}</select></label>
+    <div class="field"><span>Duration</span><div class="seg">
+      ${[['full','Full day'],['fn','Forenoon'],['an','Afternoon']].map(([v,l])=>`<label><input type="radio" name="dur" value="${v}" ${e.dur===v?'checked':''}>${l}</label>`).join('')}
+    </div></div>
+    <label class="field"><span>Status</span><select class="in" name="status">${RULES.statuses.map(([s])=>`<option ${s===e.status?'selected':''}>${s}</option>`).join('')}</select></label>
+    <label class="field" id="dutyf"><span>Against turn duty on</span><select class="in" name="duty"><option value="">Choose a duty date</option>
+      ${dutyOpts.map(d=>`<option value="${d.date}" ${d.date===e.duty?'selected':''}>${fmt(d.date)} — ${num(d.balance)} left, valid till ${fmt(d.valid)}</option>`).join('')}</select>
+      ${dutyOpts.length?'':'<em>Add the duty on the Duty page first.</em>'}</label>
+    <label class="field"><span>Note</span><input class="in" name="note" value="${esc(e.note||'')}" placeholder="Optional"></label>
+    <div class="preview" id="pv" aria-live="polite"></div>
+    <div class="btns">
+      <button class="btn primary" type="submit">Save leave</button>
+      <button class="btn ghost" type="button" data-act="close">Cancel</button>
+      ${e.id?`<button class="btn danger" type="button" data-act="del-leave" data-id="${e.id}" style="margin-left:auto">Delete</button>`:''}
+    </div>
+  </form>`);
+  const form = $('lf');
+  const read = () => { const fd = new FormData(form); return {id:e.id||'__new', created:e.created||Date.now(), from:fd.get('from')||'', to:fd.get('to')||'',
+      type:fd.get('type'), dur:fd.get('dur')||'full', status:fd.get('status'), duty:fd.get('type')==='CLL'?(fd.get('duty')||''):'', note:(fd.get('note')||'').trim()}; };
+  const preview = () => {
+    const x = read(); $('dutyf').style.display = x.type==='CLL' ? '' : 'none';
+    if(x.to && x.to===x.from) x.to='';
+    if(!x.from){ $('pv').innerHTML = '<span class="muted">Choose a date to see how many days this counts.</span>'; return; }
+    const clone = {...p, leaves: p.leaves.filter(l=>l.id!==e.id).concat([x])};
+    const r = compute(clone).L.find(l=>l.id===x.id);
+    $('pv').innerHTML = `<span class="count">${plural(r.days,'day')}</span> <span class="muted">${r.t&&r.t.count==='calendar'?'(calendar days)':'(working days)'}</span>`+
+      (r.cat==='ignored' ? '<div class="muted">Cancelled leave is kept for the record and not counted.</div>' :
+       r.msgs.length ? r.msgs.map(m=>`<div class="msg ${m.lv}">${esc(m.text)}</div>`).join('') : '<div style="color:var(--green);font-weight:700">Fits the rules</div>');
+  };
+  form.addEventListener('input', preview); form.addEventListener('change', preview);
+  form.addEventListener('submit', ev=>{ ev.preventDefault(); const x = read();
+    if(!x.from){ toast('Choose a From date.'); return; }
+    if(x.to===x.from) x.to='';
+    if(x.dur!=='full') x.to='';
+    if(e.id){ const i=p.leaves.findIndex(l=>l.id===e.id); p.leaves[i] = {...x, id:e.id, updated:now()}; }
+    else p.leaves.push({...x, id:uid(), updated:now()});
+    persist(); closeSheet(); render(); toast(e.id?'Leave updated':'Leave added');
+  });
+  preview();
+}
+
+function dutyForm(d){
+  ui.sheet = {kind:'duty', id:d.id};
+  openSheet(`<h2>${d.id?'Edit turn duty':'Add turn duty'}</h2>
+  <form id="df">
+    <label class="field"><span>Date of holiday duty</span><input class="in" type="date" name="date" value="${d.date||''}" required></label>
+    <div class="field"><span>Compensatory leave earned</span><div class="seg" style="grid-template-columns:1fr 1fr">
+      <label><input type="radio" name="credit" value="1" ${(+d.credit||1)===1?'checked':''}>1 day</label>
+      <label><input type="radio" name="credit" value="0.5" ${+d.credit===0.5?'checked':''}>Half day</label></div></div>
+    <label class="field"><span>Note</span><input class="in" name="note" value="${esc(d.note||'')}" placeholder="Optional, e.g. election duty"></label>
+    <div class="btns"><button class="btn primary" type="submit">Save duty</button><button class="btn ghost" type="button" data-act="close">Cancel</button>
+      ${d.id?`<button class="btn danger" type="button" data-act="del-duty" data-id="${d.id}" style="margin-left:auto">Delete</button>`:''}</div>
+  </form>`);
+  $('df').addEventListener('submit', ev=>{ ev.preventDefault(); const fd=new FormData(ev.target), p=activeProfile();
+    const x = {date:fd.get('date'), credit:+fd.get('credit')||1, note:(fd.get('note')||'').trim()};
+    if(!x.date){ toast('Choose the duty date.'); return; }
+    if(d.id){ const i=p.duties.findIndex(q=>q.id===d.id); const old=p.duties[i].date; p.duties[i]={...x,id:d.id,updated:now()};
+      if(old!==x.date) p.leaves.forEach(l=>{ if(l.duty===old){ l.duty=x.date; l.updated=now(); } }); }
+    else p.duties.push({...x, id:uid(), updated:now()});
+    persist(); closeSheet(); render(); toast('Duty saved');
+  });
+}
+
+function profileForm(p, inline){
+  return `<form id="pf" ${inline?'':'class="sheetform"'}>
+    <label class="field"><span>Name</span><input class="in" name="name" value="${esc(p.name)}" placeholder="e.g. Priya" required></label>
+    <label class="field"><span>Date of joining</span><input class="in" type="date" name="joinDate" value="${p.joinDate||''}" required><em>Earned Leave is worked out from this date.</em></label>
+    <label class="field"><span>Service</span><select class="in" name="service">
+      <option value="superior" ${p.service==='superior'?'selected':''}>Superior service — most posts (assistants, typists, officers)</option>
+      <option value="basic" ${p.service==='basic'?'selected':''}>Basic service — office assistants, record clerks, watchmen</option></select></label>
+    <label class="field"><span>Your category</span><select class="in" name="category">
+      <option value="probationer" ${p.category==='probationer'?'selected':''}>Probationer — probation not yet declared</option>
+      <option value="approved" ${p.category==='approved'?'selected':''}>Approved probationer / permanent</option>
+      <option value="temporary" ${p.category==='temporary'?'selected':''}>Temporary appointment</option></select>
+      <em>Not sure? New regular recruits are usually probationers for the first 2 years. Ask your office.</em></label>
+    <label class="field" id="probf"><span>Probation declared on</span><input class="in" type="date" name="probationDate" value="${p.probationDate||''}"><em>Leave empty if you joined already permanent.</em></label>
+    <label class="check"><input type="checkbox" name="cllEligible" ${p.cllEligible?'checked':''}><span>I get compensatory leave for holiday turn duty</span></label>
+  </form>`;
+}
+function profileSheet(p, isNew){
+  ui.sheet = {kind:'profile'};
+  openSheet(`<h2>${isNew?'Add a person':'Edit profile'}</h2>${profileForm(p)}
+    <div class="btns"><button class="btn primary" data-act="save-profile" ${isNew?'data-new="1"':''}>Save profile</button><button class="btn ghost" data-act="close">Cancel</button></div>`);
+  wireProfileForm();
+}
+function wireProfileForm(){
+  const f = $('pf'); if(!f) return;
+  const upd = () => { $('probf').style.display = f.category.value==='approved' ? '' : 'none'; };
+  f.addEventListener('change', upd); upd();
+}
+function saveProfile(isNew){
+  const f = $('pf'), fd = new FormData(f);
+  const x = {name:(fd.get('name')||'').trim(), joinDate:fd.get('joinDate')||'', service:fd.get('service'), category:fd.get('category'),
+             probationDate: fd.get('category')==='approved' ? (fd.get('probationDate')||'') : '', cllEligible: !!fd.get('cllEligible')};
+  if(!x.name){ toast('Enter a name.'); return; }
+  if(!x.joinDate){ toast('Enter the date of joining.'); return; }
+  if(isNew){ const p = normalizeProfile({...x, id:uid(), updated:now()}); S.profiles.push(p); S.active = p.id; }
+  else Object.assign(activeProfile(), x, {updated:now()});
+  persist(); closeSheet(); ui.tab = isNew ? 'home' : ui.tab; render(); toast('Profile saved');
+}
+
+function holidaySheet(){
+  openSheet(`<h2>Add holiday</h2><form id="hf">
+    <label class="field"><span>Date</span><input class="in" type="date" name="date" required></label>
+    <label class="field"><span>Name</span><input class="in" name="name" required placeholder="e.g. Pongal"></label>
+    <div class="field"><span>List</span><div class="seg" style="grid-template-columns:1fr 1fr">
+      <label><input type="radio" name="kind" value="public" checked>Public holiday</label><label><input type="radio" name="kind" value="rh">RH list</label></div></div>
+    <div class="btns"><button class="btn primary" type="submit">Add holiday</button><button class="btn ghost" type="button" data-act="close">Cancel</button></div></form>`);
+  $('hf').addEventListener('submit', ev=>{ ev.preventDefault(); const fd=new FormData(ev.target);
+    const h={date:fd.get('date'), name:(fd.get('name')||'').trim(), kind:fd.get('kind')};
+    if(!h.date||!h.name){ toast('Enter a date and a name.'); return; }
+    if(S.holidays.some(x=>x.kind===h.kind && x.date===h.date && x.name===h.name)){ toast('Already on the list.'); return; }
+    h.updated = now(); S.holidays.push(h); ui.hYear = +h.date.slice(0,4); persist(); closeSheet(); render(); toast('Holiday added');
+  });
+}
+function pasteSheet(){
+  openSheet(`<h2>Paste a holiday list</h2><form id="hp">
+    <p class="small muted">One holiday per line: a date, then the name. Dates can be 2027-01-15, 15-01-2027, 15/01/2027 or 15 Jan 2027.</p>
+    <div class="field"><span>Add to</span><div class="seg" style="grid-template-columns:1fr 1fr">
+      <label><input type="radio" name="kind" value="public" checked>Public holidays</label><label><input type="radio" name="kind" value="rh">RH list</label></div></div>
+    <label class="field"><span>List</span><textarea class="in" name="txt" placeholder="15-01-2027 Pongal&#10;16-01-2027 Thiruvalluvar Day"></textarea></label>
+    <div class="btns"><button class="btn primary" type="submit">Add these holidays</button><button class="btn ghost" type="button" data-act="close">Cancel</button></div></form>`);
+  $('hp').addEventListener('submit', ev=>{ ev.preventDefault(); const fd=new FormData(ev.target), kind=fd.get('kind');
+    let added=0, skipped=0, lastY=null;
+    String(fd.get('txt')||'').split(/\r?\n/).forEach(line=>{
+      line=line.trim(); if(!line) return; const r=parseDateLine(line);
+      if(!r){ skipped++; return; }
+      if(S.holidays.some(x=>x.kind===kind && x.date===r.date)){ skipped++; return; }
+      S.holidays.push({date:r.date, name:r.name||'Holiday', kind, updated:now()}); added++; lastY=+r.date.slice(0,4);
+    });
+    if(lastY) ui.hYear=lastY; persist(); closeSheet(); render(); toast(`Added ${added}${skipped?`, skipped ${skipped}`:''}`);
+  });
+}
+function parseDateLine(s){
+  let m, y, mo, d, rest;
+  if((m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})[\s,;:\t-]*(.*)$/))){ [,y,mo,d,rest]=m; }
+  else if((m=s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})[\s,;:\t-]*(.*)$/))){ [,d,mo,y,rest]=m; }
+  else if((m=s.match(/^(\d{1,2})[\s-]([A-Za-z]{3})[A-Za-z]*[\s-,]+(\d{4})[\s,;:\t-]*(.*)$/))){ d=m[1]; mo=MON.findIndex(x=>x.toLowerCase()===m[2].toLowerCase())+1; y=m[3]; rest=m[4]; if(!mo) return null; }
+  else return null;
+  y=+y; mo=+mo; d=+d; if(mo<1||mo>12||d<1||d>31) return null;
+  const date=`${y}-${pad(mo)}-${pad(d)}`; if(iso(D(date))!==date) return null;
+  return {date, name:(rest||'').replace(/^\(?\w{3,9}day\)?[\s,;-]*/i,'').trim()};
+}
+function adjSheet(){
+  openSheet(`<h2>EL adjustment</h2><form id="af">
+    <label class="field"><span>Date</span><input class="in" type="date" name="date" value="${C.today}" required></label>
+    <label class="field"><span>Days</span><input class="in" type="number" step="0.5" name="days" required placeholder="e.g. 45 or -15"><em>Positive adds to your EL, negative takes away (for example, EL surrendered).</em></label>
+    <label class="field"><span>Reason</span><input class="in" name="note" placeholder="e.g. EL from previous service"></label>
+    <div class="btns"><button class="btn primary" type="submit">Add adjustment</button><button class="btn ghost" type="button" data-act="close">Cancel</button></div></form>`);
+  $('af').addEventListener('submit', ev=>{ ev.preventDefault(); const fd=new FormData(ev.target), v=+fd.get('days');
+    if(!fd.get('date')||!v){ toast('Enter a date and a number of days.'); return; }
+    activeProfile().elAdjust.push({id:uid(), date:fd.get('date'), days:v, note:(fd.get('note')||'').trim()||'Adjustment', updated:now()});
+    persist(); closeSheet(); render(); toast('Adjustment added');
+  });
+}
+function switchSheet(){
+  openSheet(`<h2>Open a register</h2><div class="panel">${S.profiles.map(q=>`<div class="hrow" style="grid-template-columns:1fr auto"><span><b>${esc(q.name)}</b></span>
+    ${q.id===S.active?'<span class="muted small">Open</span>':`<button class="btn" data-act="open-profile" data-id="${q.id}">Open</button>`}</div>`).join('')}</div>
+    <div class="btns"><button class="btn" data-act="new-profile">+ Add another person</button><button class="btn ghost" data-act="close">Close</button></div>`);
+}
+function confirmSheet(title, text, label, fn){
+  ui.confirmFn = fn;
+  openSheet(`<h2>${title}</h2><p>${text}</p><div class="btns"><button class="btn danger" data-act="confirm-yes">${label}</button><button class="btn ghost" data-act="close">Keep it</button></div>`);
+}
+
+/* ---------------------------------------------------------------- files */
+async function offerFile(filename, data, mime){
+  try{
+    if(window.claude && typeof window.claude.use==='function'){
+      const dl = await window.claude.use('downloads');
+      if(dl){
+        try{ await dl.save({filename, data}); return true; }
+        catch(e){ if(e && e.code==='declined') return false; toast('Could not save the file here.'); return false; }
+      }
+    }
+  }catch(e){}
+  const blob = data instanceof Blob ? data : new Blob([data], {type:mime});
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 4000);
+  return true;
+}
+async function doBackup(){
+  const data = JSON.stringify(exportObj(S), null, 1);
+  const ok = await offerFile(`leave-register-backup-${todayISO()}.json`, data, 'application/json');
+  if(ok){ S.lastBackup = todayISO(); persist(); render(); toast('Backup downloaded'); }
+}
+function doRestore(text){
+  let obj; try{ obj = JSON.parse(text); }catch(e){ toast('That file is not a backup from this app.'); return; }
+  if(!obj || obj.app!=='leave-register' || !Array.isArray(obj.profiles)){ toast('That file is not a backup from this app.'); return; }
+  const had = new Set(S.profiles.map(p=>p.id));
+  obj.holidays = (obj.holidays||[]).filter(h=>h && h.date && h.kind);
+  S = mergeState(S, obj);
+  const added = S.profiles.filter(p=>!had.has(p.id)).length;
+  if(obj.profiles[0] && S.profiles.some(p=>p.id===obj.profiles[0].id)) S.active = obj.profiles[0].id;
+  if(!S.profiles.some(p=>p.id===S.active)) S.active = S.profiles[0]?.id || null;
+  persist(); closeSheet(); ui.tab='home'; render();
+  toast(added ? `Backup restored: ${plural(added,'register')} added` : 'Backup restored and merged');
+}
+function doExcel(){
+  if(!window.XLSX){ toast('The Excel tool has not loaded. Check your internet connection and try again.'); return; }
+  const p = C.p, X = window.XLSX, wb = X.utils.book_new();
+  const dt = s => s ? new Date(+s.slice(0,4), +s.slice(5,7)-1, +s.slice(8,10)) : '';
+  const add = (name, rows, widths) => { const ws = X.utils.aoa_to_sheet(rows, {cellDates:true, dateNF:'dd-mmm-yyyy'}); ws['!cols']=widths.map(w=>({wch:w})); X.utils.book_append_sheet(wb, ws, name); };
+  const years = yearsOf(C);
+  add('Summary', [[`Leave Register — ${p.name}`],[`Exported ${fmt(C.today)}. Joined ${fmt(p.joinDate)}. ${SERVICE[p.service]}, ${CATEGORY[p.category]}.`],[],
+    ['Year','EL opening','EL credited','EL adjusted','EL used','EL balance 31 Dec','EL planned','CL used','CL planned','CL left','RH used','RH planned','RH left','CLL earned','CLL used','CLL lapsed','Total taken','Total planned'],
+    ...years.map(y=>{ const s=yearSummary(C,y); return [y,s.el.opening,s.el.credited,s.el.adjust,s.el.used,s.el.closing,s.el.planned,s.cl.used,s.cl.planned,s.cl.balance,s.rh.used,s.rh.planned,s.rh.balance,s.cll.earned,s.cll.used,s.cll.lapsed,s.taken,s.planned]; })],
+    [8,11,11,11,9,16,11,9,10,8,9,10,8,11,9,10,11,12]);
+  add('Leave Log', [['From','To','Type','Leave type','Duration','Status','Against duty','Days','Check','Note'],
+    ...C.L.map(e=>[dt(e.from), dt(e.end), e.type, e.t?e.t.name:'', {full:'Full day',fn:'Forenoon',an:'Afternoon'}[e.dur], e.status, dt(e.duty), e.days,
+      e.cat==='ignored'?'':(e.msgs.map(m=>(m.lv==='err'?'Error: ':'Warning: ')+m.text).join('; ')||'OK'), e.note])],
+    [13,13,7,30,10,16,13,6,50,30]);
+  add('Turn Duty', [['Duty date','Day','Earned','Valid until','Used','Planned','Left','Status','Note'],
+    ...C.duties.map(d=>[dt(d.date), DAYS[dow(d.date)], d.credit, dt(d.valid), d.used, d.planned, d.balance, d.status, d.note])],[13,11,8,13,7,8,7,14,30]);
+  add('EL Account', [['Date','Details','Days','Balance'], ...C.elUsed.map(x=>[dt(x.date), x.note, x.credited, x.balance])],[13,50,8,9]);
+  add('Holidays', [['Date','Day','List','Name'], ...S.holidays.slice().sort((a,b)=>a.date<b.date?-1:1).map(h=>[dt(h.date), DAYS[dow(h.date)], h.kind==='rh'?'RH list':'Public holiday', h.name])],[13,11,15,45]);
+  const out = X.write(wb, {bookType:'xlsx', type:'array', cellDates:true});
+  offerFile(`Leave-Register-${(p.name||'register').replace(/[^\w-]+/g,'-')}-${C.today}.xlsx`,
+    new Blob([out], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})).then(ok=>ok&&toast('Excel file ready'));
+}
+
+/* ---------------------------------------------------------------- events */
+let toastT;
+function toast(msg){ clearTimeout(toastT); let t=document.querySelector('.toast'); if(!t){ t=document.createElement('div'); t.className='toast'; t.setAttribute('role','status'); document.body.appendChild(t); }
+  t.textContent = msg; toastT = setTimeout(()=>t.remove(), 2800); }
+
+document.addEventListener('click', ev=>{
+  const el = ev.target.closest('[data-act]'); if(!el) return;
+  const act = el.dataset.act, p = activeProfile();
+  if(act==='scrim'){ if(ev.target===el) closeSheet(); return; }
+  if(el.tagName==='A') ev.preventDefault();
+  switch(act){
+    case 'tab': ui.tab = el.dataset.tab; closeSheet(); render(); window.scrollTo(0,0); break;
+    case 'logyear': ui.logYear = el.dataset.y; render(); break;
+    case 'hyear': ui.hYear = +el.dataset.y; render(); break;
+    case 'add-leave': leaveForm({from:C.today, to:'', type:'CL', dur:'full', status:'Taken', duty:'', note:''}); break;
+    case 'edit-leave': leaveForm(p.leaves.find(l=>l.id===el.dataset.id)); break;
+    case 'del-leave': confirmSheet('Delete this leave?', 'If the leave was cancelled, set its status to Cancelled instead to keep a record.', 'Delete leave', ()=>{ p.leaves = p.leaves.filter(l=>l.id!==el.dataset.id); tomb(el.dataset.id); toast('Leave deleted'); }); break;
+    case 'add-duty': dutyForm({date:'', credit:1, note:''}); break;
+    case 'edit-duty': dutyForm(p.duties.find(d=>d.id===el.dataset.id)); break;
+    case 'del-duty': { const d=p.duties.find(x=>x.id===el.dataset.id); const n=p.leaves.filter(l=>l.duty===d.date).length;
+      confirmSheet('Delete this duty?', n?`${plural(n,'leave entry')} use this duty and will show an error.`:'This removes the compensatory credit.', 'Delete duty', ()=>{ p.duties=p.duties.filter(x=>x.id!==d.id); tomb(d.id); toast('Duty deleted'); }); break; }
+    case 'add-hol': holidaySheet(); break;
+    case 'paste-hol': pasteSheet(); break;
+    case 'del-hol': { const [k,d,...n]=el.dataset.k.split('|'); const name=n.join('|'); const tmp=document.createElement('textarea'); tmp.innerHTML=name;
+      S.holidays = S.holidays.filter(h=>!(h.kind===k && h.date===d && h.name===tmp.value)); tomb(hkey({kind:k,date:d,name:tmp.value})); persist(); render(); toast('Holiday removed'); break; }
+    case 'confirm-hol': S.holidays.forEach(h=>{ if(h.date.startsWith(el.dataset.y)){ delete h.draft; h.updated=now(); } }); persist(); render(); toast('Holiday list confirmed'); break;
+    case 'edit-profile': profileSheet(p, false); break;
+    case 'new-profile': profileSheet({name:'',joinDate:'',service:'superior',category:'probationer',probationDate:'',cllEligible:true}, true); break;
+    case 'save-profile': saveProfile(!!el.dataset.new); break;
+    case 'open-profile': S.active = el.dataset.id; persist(); closeSheet(); ui.tab='home'; render(); break;
+    case 'switch': switchSheet(); break;
+    case 'del-profile': confirmSheet(`Delete ${esc(p.name)}’s register?`, 'All leave, duty and EL entries for this person will be removed from this device. Download a backup first if you may need them.', 'Delete register', ()=>{ S.profiles=S.profiles.filter(q=>q.id!==p.id); tomb(p.id); S.active=S.profiles[0]?.id||null; ui.tab='home'; toast('Register deleted'); }); break;
+    case 'add-adj': adjSheet(); break;
+    case 'del-adj': p.elAdjust = p.elAdjust.filter(a=>a.id!==el.dataset.id); tomb(el.dataset.id); persist(); render(); toast('Adjustment removed'); break;
+    case 'backup': doBackup(); break;
+    case 'restore': $('filein').value=''; $('filein').click(); break;
+    case 'excel': doExcel(); break;
+    case 'confirm-yes': { const fn=ui.confirmFn; ui.confirmFn=null; if(fn) fn(); persist(); closeSheet(); render(); break; }
+    case 'sync-now': syncNow(true); break;
+    case 'sync-off': confirmSheet('Disconnect Google Drive?', 'This device stops syncing. Your data stays here and in your Drive.', 'Disconnect', syncOff); break;
+    case 'close': closeSheet(); break;
+  }
+});
+document.addEventListener('change', ev=>{
+  const t = ev.target;
+  if(t.dataset.act==='year'){ ui.year = +t.value; render(); }
+  if(t.dataset.set){ const v=+t.value; if(Number.isFinite(v) && v>=0){ S.settings[t.dataset.set]=v; S.settingsUpdated=now(); persist(); render(); toast('Rule updated'); } }
+});
+document.addEventListener('keydown', ev=>{ if(ev.key==='Escape' && $('layer').innerHTML) closeSheet(); });
+$('filein').addEventListener('change', ev=>{ const f=ev.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>doRestore(String(r.result)); r.readAsText(f); });
+document.addEventListener('submit', ev=>{ if(ev.target.id==='pf'){ ev.preventDefault(); saveProfile(!activeProfile() || !!document.querySelector('[data-act="save-profile"][data-new]')); } });
+
+/* ---------------------------------------------------------------- PWA (only when hosted on its own site) */
+(function(){
+  const h = location.hostname;
+  if(/claude/i.test(h)) return;
+  if(location.protocol!=='https:' && h!=='localhost' && h!=='127.0.0.1') return;
+  const l = document.createElement('link'); l.rel='manifest'; l.href='manifest.webmanifest'; document.head.appendChild(l);
+  if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+})();
+
+render();
+initGIS();
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible' && DEV.sync && token && now()<tokenExp-60000) syncNow(false); });
+</script>
+</body>
+</html>
